@@ -147,8 +147,8 @@ function Record(){
             		// 録音チャンクのリセット
             		recordedChunks=[];
         	    	// 録音開始
-    	    		mediaRecorder.start();
             	    javascriptnode.onaudioprocess = onAudioProcess;
+    	    		mediaRecorder.start();
     	        	// n秒で録音終了
     	        	setTimeout(function(){
     	        		//stream.getAudioTracks()[0].stop();
@@ -169,8 +169,8 @@ function Record(){
         		// 録音チャンクのリセット
         		recordedChunks=[];
 		    	// 録音開始
-	    		mediaRecorder.start();
         	    javascriptnode.onaudioprocess = onAudioProcess;
+	    		mediaRecorder.start();
 	        	setTimeout(function(){
 	            	// n秒で録音終了
 	        		//stream.getAudioTracks()[0].stop();
@@ -263,6 +263,22 @@ var Draw_graph = function(wave){
 
 // 録音処理終了後のメッセージ
 function finish(){
+	// pianoの描画
+	var piano = document.getElementById('piano');
+	var pianoContext = piano.getContext('2d');
+	pianoContext.clearRect(0,0,piano.width,piano.height);
+	var keywidth=(piano.width-graph_margin/2)/8
+	//白鍵
+	for(var i=0;i<8;i++){
+		pianoContext.strokeRect(keywidth*i,0,keywidth,piano.height);
+	}
+	//黒鍵
+	pianoContext.fillRect(keywidth*0.70,0,keywidth*0.6,piano.height*0.6);
+	pianoContext.fillRect(keywidth*1.70,0,keywidth*0.6,piano.height*0.6);
+	pianoContext.fillRect(keywidth*3.70,0,keywidth*0.6,piano.height*0.6);
+	pianoContext.fillRect(keywidth*4.70,0,keywidth*0.6,piano.height*0.6);
+	pianoContext.fillRect(keywidth*5.70,0,keywidth*0.6,piano.height*0.6);
+	pianoContext.fillRect(keywidth*7.70,0,keywidth*0.3,piano.height*0.6);
 	// 結果の表示処理
 	var animation = anime.timeline();
 	animation.add({
@@ -273,7 +289,6 @@ function finish(){
 		autoplay:false,
 		duration:1000
 	});
-	
 }
 
 // データをミックスして再生
@@ -284,8 +299,7 @@ function Play_rec(){
 	for(var i=0;i<8;i++){
 		bloburl[i] = window.URL.createObjectURL( record_data[i] );
 		audio_rec[i] = new Audio(bloburl[i]);
-		audio_rec[i].currentTime = 0.4;
-		
+		audio_rec[i].src += '#t=0.4,0.6';
 	}
 	for(var i=0;i<7;i++){
     	audio_rec[i].addEventListener('pause',function(){
@@ -298,17 +312,6 @@ function Play_rec(){
 	setTimeout(function(){audio_rec[0].pause();},200);
 }
 
-/*
-function Play_rec(){
-	var bloburl = window.URL.createObjectURL( record_data[1] );
-	var audio_rec = new Audio(bloburl);
-	audio_rec.currentTime = 0.4;
-	audio_rec.play();
-	var bloburl2 = window.URL.createObjectURL( record_data[2] );
-	var audio_rec2 = new Audio(bloburl);
-	audio_rec2.play();
-}
-*/
 // データをミックスして曲を再生
 function Play_music(song){
 	var bloburl = [];
@@ -340,7 +343,7 @@ function Play_music(song){
 			note[i]=null;
 		}else{
 			note[i] = new Audio(bloburl[score[i]]);
-			note[i].currentTime=0.4;
+			note[i].src += '#t=0.4,0.6';
 		}
 	}
 	note_idx=1;
@@ -350,7 +353,7 @@ function Play_music(song){
     			note_idx++;
         		setTimeout(function(){
         			note[note_idx].play();
-        			setTimeout(function(){note[note_idx].pause();},play_speed);
+            		setTimeout(function(){note[note_idx].pause();},200);
             		note_idx++;
         			},play_speed);
 			});
@@ -358,46 +361,44 @@ function Play_music(song){
 		}else{
 			note[i].addEventListener('pause',function(){
     			note[note_idx].play();
-        		setTimeout(function(){note[note_idx].pause();},play_speed);
+        		setTimeout(function(){note[note_idx].pause();},200);
         		note_idx++;
 			});
 		}
 	}
 	note[0].play();
-	setTimeout(function(){note[0].pause();},play_speed);
+	setTimeout(function(){note[0].pause();},200);
 }
-
-
 
 // データをphpに送信して保存
 function Send_php(){
-	var bloburl=[];
+	//var bloburl=[];
+	var reader = [];
 	for(var i=0;i<8;i++){
-		bloburl[i] = window.URL.createObjectURL( record_data[i] );
+		//bloburl[i] = window.URL.createObjectURL( record_data[i] );
+		reader[i] = new FileReader();
+		reader[i].readAsDataURL(record_data[i]);
 	}
 	var name = document.getElementById("name").value;
-	
-    $.ajax({
-      url : "./scale_rec.php",
-      type : "POST",
-	  data: {
-		    name : name,
-		    dowav : bloburl[0],
-		    rewav : bloburl[1],
-		    miwav : bloburl[2],
-		    fawav : bloburl[3],
-		    sowav : bloburl[4],
-		    lawav : bloburl[5],
-		    tiwav : bloburl[6],
-		    hidowav : bloburl[7]
-		  },
-      cache : false,
-      contentType : false,
-      processData : false,
-      success : function(r) {
-        alert("Success!");
-      }
-    });
+	reader[7].onload = function(){
+	    $.ajax({
+	      url : "./scale_rec.php",
+	      type : "POST",
+		  dataType:'text',
+		  data: {
+			    name : name,
+			    dowav : reader[0].result,
+			    rewav : reader[1].result,
+			    miwav : reader[2].result,
+			    fawav : reader[3].result,
+			    sowav : reader[4].result,
+			    lawav : reader[5].result,
+			    tiwav : reader[6].result,
+			    hidowav : reader[7].result
+			  },
+	      success : function(r) {
+	        alert("Success!");
+	      }
+    	});
+    }
 }
-
-				 

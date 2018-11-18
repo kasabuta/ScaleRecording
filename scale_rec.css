@@ -9,13 +9,15 @@
 	width:120px;
 }
 .fade{
-	background-color:#ddffff;
+	background-color:#ffe4b5;
+	width:600px;
 	
 }
 #result{
 }
 .title{
-	margin-left:60px;
+	margin-left:30px;
+	padding-left:30px;
 	width:200px;
 	font-size:25px;
 	background-color:#ffddff;
