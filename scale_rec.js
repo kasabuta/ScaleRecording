@@ -48,7 +48,7 @@ function Initialize(){
 	// 結果の非表示処理
 	var animation = anime.timeline();
 	animation.add({
-		targets:".fade",
+		targets:".fade1, .fade2, .fade3",
 		opacity:0,
 		scaleY:0,
 		autoplay:false,
@@ -60,17 +60,15 @@ function GraphInitialize(){
 	//キャンバス情報の取得
 	var canvas = document.getElementById('graph');
 	var canvasContext = canvas.getContext('2d');
+	canvasContext.stroke();
 	canvasContext.clearRect(0, 0, canvas.width, canvas.height);
 	// x軸の線(横線)とラベル出力
-	// Draw grid (Y)
 	canvasContext.fillRect(graph_margin, 0, canvas.width-graph_margin*2, 1);
 	canvasContext.fillRect(graph_margin, (canvas.height-graph_margin)/2, canvas.width-graph_margin*2, 1);
 	canvasContext.fillRect(graph_margin, canvas.height-graph_margin, canvas.width-graph_margin*2, 1);
-	// Draw text (Y)
 	
 	// 500ms単位にy軸の線(縦線)とラベル出力
 	for(var i=0;i*500<=recording_time;i++){
-		//var text = (s < 1000) ? (s + ' ms') : ((s / 1000) + ' s');
 		var text = String(i*0.5) + ' s';
 		var x=graph_margin+((canvas.width-graph_margin*2)/(recording_time/500))*i;
 		// Draw grid (X)
@@ -139,16 +137,16 @@ function Record(){
     	function Scale_Recording(count){
     		if(count>7){
     	    	audio[7].addEventListener('pause',function(){
-    	    		// 録音波形の初期化
-    	    		GraphInitialize();
-    	        	// タイマーセット
-    	        	timer_s = new Date();
-    	        	timer=timer_s;
             		// 録音チャンクのリセット
             		recordedChunks=[];
         	    	// 録音開始
             	    javascriptnode.onaudioprocess = onAudioProcess;
     	    		mediaRecorder.start();
+    	        	// タイマーセット
+    	        	timer_s = new Date();
+    	        	timer=timer_s;
+    	    		// 録音波形の初期化
+    	    		//GraphInitialize();
     	        	// n秒で録音終了
     	        	setTimeout(function(){
     	        		//stream.getAudioTracks()[0].stop();
@@ -161,16 +159,16 @@ function Record(){
     	    	return;
     		}
 	    	audio[count-1].addEventListener('pause',function(){
-        		// 録音波形の初期化
-        		GraphInitialize();
-            	// タイマーセット
-            	timer_s = new Date();
-	        	timer=timer_s;
         		// 録音チャンクのリセット
         		recordedChunks=[];
 		    	// 録音開始
         	    javascriptnode.onaudioprocess = onAudioProcess;
 	    		mediaRecorder.start();
+            	// タイマーセット
+            	timer_s = new Date();
+	        	timer=timer_s;
+        		// 録音波形の初期化
+        		//GraphInitialize();
 	        	setTimeout(function(){
 	            	// n秒で録音終了
 	        		//stream.getAudioTracks()[0].stop();
@@ -234,12 +232,18 @@ var Draw_graph = function(wave){
 	//キャンバス情報の取得
 	var canvas = document.getElementById('graph');
 	var canvasContext = canvas.getContext('2d');
+	if(timer-timer_s<150){
+		GraphInitialize();
+	}
 
 	canvasContext.beginPath();
 	var newTimer = new Date();
 	if(newTimer>timer_s+recording_time){
 		newTimer = timer_s + recording_time;
 	}
+
+	console.log("%d %d",timer-timer_s,newTimer-timer_s);
+	
 	var xs = graph_margin + (canvas.width-graph_margin*2)*((timer-timer_s)/recording_time);
 	var xe = graph_margin + (canvas.width-graph_margin*2)*((newTimer-timer_s)/recording_time);
 	for (var i = 0; i < wave.length; i++) {
@@ -282,7 +286,7 @@ function finish(){
 	// 結果の表示処理
 	var animation = anime.timeline();
 	animation.add({
-		targets:".fade",
+		targets:".fade1, .fade2, .fade3",
 		opacity:1,
 		scaleY:1,
 		easing:"linear",
