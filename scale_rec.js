@@ -1,5 +1,12 @@
 //. ブラウザによる差異を吸収
-navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+navigator.mediaDevices = navigator.mediaDevices || ((navigator.mozGetUserMedia || navigator.webkitGetUserMedia) ? {
+   getUserMedia: function(c) {
+     return new Promise(function(y, n) {
+       (navigator.mozGetUserMedia ||
+        navigator.webkitGetUserMedia).call(navigator, c, y, n);
+     });
+   }
+} : null);
 window.AudioContext = window.AudioContext || window.webkitAudioContext || window.mozAudioContext || window.msAudioContext;
  
 //. バッファサイズ等
@@ -113,10 +120,7 @@ function DrawPiano(tone){
  
 //. 音声処理開始
 function Record(){
-	
-  navigator.getUserMedia(
-    { audio: true },
-    function( stream ){
+	navigator.mediaDevices.getUserMedia({ audio: true }).then(function( stream ){
     	var idx=0;
         recordedBuffer = [];
         var mediaRecorder = new MediaRecorder(stream);
@@ -208,11 +212,9 @@ function Record(){
     	  }
     	  idx++;
       });
-
-    },function( e ){
+	}).catch(function( e ){
       console.log( e );
-    }
-  );
+    });
 }
 //. 繰り返し呼ばれる処理
 function onAudioProcess( e ){
@@ -305,15 +307,29 @@ function Play_rec(){
 		audio_rec[i] = new Audio(bloburl[i]);
 		audio_rec[i].src += '#t=0.4,0.6';
 	}
+	var mute = new Audio("./sample_wave/mute.wav");
+	mute.addEventListener('pause',function(){
+		mute.currentTime=0.0;
+		audio_rec[audio_idx].play();
+	});
+	for(var i=0;i<7;i++){
+		audio_rec[i].addEventListener('pause',function(){
+			audio_idx++;
+			mute.play();
+			setTimeout(function(){mute.pause();},100);
+		});
+	}
+	/*
 	for(var i=0;i<7;i++){
     	audio_rec[i].addEventListener('pause',function(){
     		audio_idx++;
     		audio_rec[audio_idx].play();
-    		setTimeout(function(){audio_rec[audio_idx].pause();},200);
+    		setTimeout(function(){audio_rec[audio_idx].pause();},250);
     	});
 	}
+	*/
 	audio_rec[0].play();
-	setTimeout(function(){audio_rec[0].pause();},200);
+	//setTimeout(function(){audio_rec[0].pause();},250);
 }
 
 // データをミックスして曲を再生
@@ -321,36 +337,43 @@ function Play_music(song){
 	var bloburl = [];
 	var audio_rec = [];
 	var note_idx;
+	var margin_idx;
 	var score = [];
 	var play_speed = 200;
 	for(var i=0;i<8;i++){
 		bloburl[i] = window.URL.createObjectURL( record_data[i] );
 	}
+	bloburl[8]="./sample_wave/mute.wav";
 	// 譜面データ（-1が休符）
 	if(song=="kaeru"){
-		score = [0,1,2,3,2,1,0,-1,2,3,4,5,4,3,2];
+		score = [0,1,2,3,2,1,0,8,2,3,4,5,4,3,2];
 	}else if(song=="choucho"){
-		score = [4,2,2,-1,3,1,1,-1,0,1,2,3,4,4,4];
+		score = [4,2,2,8,3,1,1,8,0,1,2,3,4,4,4];
 	}else if(song=="churippu"){
-		score = [0,1,2,-1,0,1,2,-1,4,2,1,0,1,2,1];
+		score = [0,1,2,8,0,1,2,8,4,2,1,0,1,2,1];
 	}else if(song=="morobito"){
 		score = [7,7,7,7,6,6,6,5,4,4,4,4,4,4,3,3,2,2,2,2,1,1,1,1,0,0,0,0,0,0];
 	}else if(song=="rondon"){
-		score = [4,4,4,5,4,4,3,3,2,2,3,3,4,4,4,4];
+		score = [4,4,4,5,4,4,3,3,2,2,3,3,4,4,4,4,1,1,2,2,3,3,3,3,2,2,3,3,4,4,4,4];
 	}else if(song=="seija"){
-		score = [0,2,3,4,4,4,4,-1,0,2,3,4,4,4,4,-1,0,2,3,4,4,2,2,0,0,2,2,1,1,1,1,1];
+		score = [0,2,3,4,4,4,4,8,0,2,3,4,4,4,4,8,0,2,3,4,4,2,2,0,0,2,2,1,1,1,1,1];
 	}
 	// 曲の演奏
 	var note=[];
+	var time_src = '#t=0.4,'+ String(0.4+play_speed/1000);
 	for(var i=0;i<score.length;i++){
 		if(score[i]<0){
 			note[i]=null;
 		}else{
 			note[i] = new Audio(bloburl[score[i]]);
-			note[i].src += '#t=0.4,0.6';
+			note[i].src += time_src;
 		}
 	}
-	note_idx=1;
+	var mute = new Audio(bloburl[8]);
+	var time_src2 = '#t=0.4,'+ String(0.4+play_speed/5000);
+	mute.src += time_src2;
+	note_idx=0;
+	/*
 	for(var i=0;i<(score.length-1);i++){
 		if(note[i+1]==null){
 			note[i].addEventListener('pause',function(){
@@ -365,13 +388,26 @@ function Play_music(song){
 		}else{
 			note[i].addEventListener('pause',function(){
     			note[note_idx].play();
+    			note[note_idx].
         		setTimeout(function(){note[note_idx].pause();},200);
         		note_idx++;
 			});
 		}
 	}
+	*/
+	mute.addEventListener('pause',function(){
+		mute.currentTime=0.0;
+		note[note_idx].play();
+	});
+	for(var i=0;i<(score.length-1);i++){
+		note[i].addEventListener('pause',function(){
+			note_idx++;
+			mute.play();
+			setTimeout(function(){mute.pause();},100);
+		});
+	}
 	note[0].play();
-	setTimeout(function(){note[0].pause();},200);
+	//setTimeout(function(){note[0].pause();},250);
 }
 
 // データをphpに送信して保存
